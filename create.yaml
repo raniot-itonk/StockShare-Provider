@@ -1,0 +1,33 @@
+apiVersion: apps/v1beta1
+kind: Deployment
+metadata:
+  name: stockshareprovider
+spec:
+  replicas: 1
+  template:
+    metadata:
+      labels:
+        app: stockshareprovider
+    spec:
+      terminationGracePeriodSeconds: 10
+      containers:
+      - name: stockshareprovider
+        image: raniotitonk/stockshareprovider
+        ports:
+        - containerPort: 80
+        env:
+        - name: ASPNETCORE_ENVIRONMENT
+          value: "Test"
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: stockshareprovider
+spec:
+  selector:
+    app: stockshareprovider
+  ports:
+    - protocol: TCP
+      port: 80
+      targetPort: 80
+  type: ClusterIP
