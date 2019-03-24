@@ -5,10 +5,10 @@ EXPOSE 443
 
 FROM microsoft/dotnet:2.2-sdk AS build
 WORKDIR /src
-COPY ["StockShare-Provider/StockShareProvider.csproj", "StockShare-Provider/"]
-RUN dotnet restore "StockShare-Provider/StockShareProvider.csproj"
+COPY ["StockShareProvider/StockShareProvider.csproj", "StockShareProvider/"]
+RUN dotnet restore "StockShareProvider/StockShareProvider.csproj"
 COPY . .
-WORKDIR "/src/StockShare-Provider"
+WORKDIR "/src/StockShareProvider"
 RUN dotnet build "StockShareProvider.csproj" -c Release -o /app
 
 FROM build AS publish
