@@ -2,12 +2,11 @@
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using StockShareProvider.Authorization;
 using StockShareProvider.Clients;
-using StockShareProvider.DB;
+using StockShareProvider.OptionModels;
 using Swashbuckle.AspNetCore.Swagger;
 
 namespace StockShareProvider
@@ -32,8 +31,6 @@ namespace StockShareProvider
                 c.SwaggerDoc("v1", new Info { Title = "My API", Version = "v1" });
             });
 
-            SetupDatabase(services);
-
             //services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
             //    .AddJwtBearer(options =>
             //    {
@@ -51,23 +48,21 @@ namespace StockShareProvider
             services.AddScoped<IStockTraderBrokerClient, StockTraderBrokerClient>();
             services.AddScoped<IPublicShareOwnerControlClient, PublicShareOwnerControlClient>();
             services.AddSingleton<IAuthorizationHandler, HasScopeHandler>();
+            services.Configure<Services>(Configuration.GetSection(nameof(Services)));
         }
 
         // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.
-        public void Configure(IApplicationBuilder app, IHostingEnvironment env, StockShareProviderContext context)
+        public void Configure(IApplicationBuilder app, IHostingEnvironment env)
         {
             app.UseAuthentication();
             if (env.IsDevelopment())
             {
                 app.UseDeveloperExceptionPage();
-                context.Database.EnsureDeleted();
-                context.Database.EnsureCreated();
             }
             else
             {
                 // The default HSTS value is 30 days. You may want to change this for production scenarios, see https://aka.ms/aspnetcore-hsts.
                 app.UseHsts();
-                context.Database.Migrate();
             }
 
 
@@ -81,12 +76,6 @@ namespace StockShareProvider
 
             app.UseHttpsRedirection();
             app.UseMvc();
-        }
-
-        private void SetupDatabase(IServiceCollection services)
-        {
-            services.AddDbContext<StockShareProviderContext>
-                (options => options.UseSqlServer(Configuration.GetConnectionString("PublicShareOwnerDatabase")));
         }
     }
 }

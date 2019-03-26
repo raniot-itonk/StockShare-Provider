@@ -27,7 +27,7 @@ namespace StockShareProvider.Clients
         {
             return await PolicyHelper.ThreeRetriesAsync().ExecuteAsync(() =>
                 _publicShareOwnerControl.BaseAddress
-                    .AppendPathSegments(_publicShareOwnerControl.PublicSharePath.Stock,id, "ownership")
+                    .AppendPathSegments(_publicShareOwnerControl.PublicSharePath.Stock,id)
                     .WithOAuthBearerToken(jwtToken).GetJsonAsync<Stock>());
         }
     }
@@ -35,6 +35,7 @@ namespace StockShareProvider.Clients
     public class Stock
     {
         public long Id { get; set; }
+        public Guid StockOwner { get; set; }
         public string Name { get; set; }
         public double LastTradedValue { get; set; }
         public List<Shareholder> ShareHolders { get; set; }
@@ -42,7 +43,8 @@ namespace StockShareProvider.Clients
 
     public class Shareholder
     {
-        public Guid Id { get; set; }
+        public long Id { get; set; }
+        public Guid ShareholderId { get; set; }
         public int Amount { get; set; }
     }
 
