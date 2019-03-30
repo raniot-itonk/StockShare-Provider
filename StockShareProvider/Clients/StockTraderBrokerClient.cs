@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Threading.Tasks;
 using Flurl;
 using Flurl.Http;
@@ -11,24 +12,33 @@ namespace StockShareProvider.Clients
 {
     public interface IStockTraderBrokerClient
     {
-        Task PostSellRequest(SellRequestInput request, string jwtToken);
+        Task PostSellRequest(SellRequestModel request, string jwtToken);
+        Task<List<SellRequestModel>> GetSellRequests(Guid ownerId, long stockId, string jwtToken);
     }
 
     public class StockTraderBrokerClient : IStockTraderBrokerClient
     {
-        private readonly StockTraderBroker _publicShareOwnerControl;
+        private readonly StockTraderBroker _stockTraderBroker;
 
         public StockTraderBrokerClient(IOptionsMonitor<Services> serviceOption)
         {
-            _publicShareOwnerControl = serviceOption.CurrentValue.StockTraderBroker ??
+            _stockTraderBroker = serviceOption.CurrentValue.StockTraderBroker ??
                            throw new ArgumentNullException(nameof(serviceOption.CurrentValue.StockTraderBroker));
         }
-        public async Task PostSellRequest(SellRequestInput request, string jwtToken)
+        public async Task PostSellRequest(SellRequestModel request, string jwtToken)
         {
             await PolicyHelper.ThreeRetriesAsync().ExecuteAsync(() =>
-                _publicShareOwnerControl.BaseAddress
-                    .AppendPathSegment(_publicShareOwnerControl.StockTraderBrokerPath.SellRequest)
+                _stockTraderBroker.BaseAddress
+                    .AppendPathSegment(_stockTraderBroker.StockTraderBrokerPath.SellRequest)
                     .WithOAuthBearerToken(jwtToken).PostJsonAsync(request));
+        }
+
+        public async Task<List<SellRequestModel>> GetSellRequests(Guid ownerId, long stockId, string jwtToken)
+        {
+            return await PolicyHelper.ThreeRetriesAsync().ExecuteAsync(() =>
+                _stockTraderBroker.BaseAddress
+                    .AppendPathSegment(_stockTraderBroker.StockTraderBrokerPath.SellRequest).SetQueryParams(new {ownerId, stockId})
+                    .WithOAuthBearerToken(jwtToken).GetJsonAsync<List<SellRequestModel>>());
         }
     }
 }

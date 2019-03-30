@@ -24,29 +24,32 @@ namespace StockShareProvider.Controllers
         }
 
         [HttpPost]
-        public async Task<ActionResult> SetSharesForSale(SellRequestInput sellRequestInput)
+        public async Task<ActionResult> SetSharesForSale(SellRequestModel sellRequestModel)
         {
             // Validate Ownership
             try
             {
-                var stock = await _publicShareOwnerControlClient.GetStock(sellRequestInput.StockId, "jwtToken");
-                var shareholder = stock.ShareHolders.FirstOrDefault(sh => sh.ShareholderId == sellRequestInput.AccountId);
+                var stock = await _publicShareOwnerControlClient.GetStock(sellRequestModel.StockId, "jwtToken");
+                var shareholder = stock.ShareHolders.FirstOrDefault(sh => sh.ShareholderId == sellRequestModel.AccountId);
                 if (shareholder == null)
                 {
-                    _logger.LogError("ShareHolder with id {id} Not Found for stock {stockId}", sellRequestInput.AccountId, sellRequestInput.StockId);
-                    return BadRequest($"ShareHolder with id {sellRequestInput.AccountId} Not Found for stock {sellRequestInput.StockId}");
+                    _logger.LogError("ShareHolder with id {id} Not Found for stock {stockId}", sellRequestModel.AccountId, sellRequestModel.StockId);
+                    return BadRequest($"ShareHolder with id {sellRequestModel.AccountId} Not Found for stock {sellRequestModel.StockId}");
                 }
-                if (shareholder.Amount < sellRequestInput.AmountOfShares)
+
+                var sellRequestModels = await _stockTraderBrokerClient.GetSellRequests(sellRequestModel.AccountId, sellRequestModel.StockId, "jwtToken");
+                var sharesAlreadyForSale = sellRequestModels.Sum(model => model.AmountOfShares);
+
+                if (shareholder.Amount < sellRequestModel.AmountOfShares + sharesAlreadyForSale)
                 {
-                    _logger.LogInformation("ShareHolder requests {requestAmount}, but he only has {amount}", sellRequestInput.AmountOfShares, shareholder.Amount);
-                    return BadRequest($"ShareHolder requests {sellRequestInput.AmountOfShares}, but he only has {shareholder.Amount}");
+                    _logger.LogInformation("ShareHolder requests {requestAmount}, but he only has {amount} and already {sharesAlreadyForSale} for sale", sellRequestModel.AmountOfShares, shareholder.Amount, sharesAlreadyForSale);
+                    return BadRequest($"ShareHolder requests {sellRequestModel.AmountOfShares}, but he only has {shareholder.Amount}, and already {sharesAlreadyForSale} for sale");
                 }
-                //Maybe add reserve logic cause right now this is a bit broken, since you can put your shares for sale unlimited times
 
                 // Set Shares for Sale
-                await _stockTraderBrokerClient.PostSellRequest(sellRequestInput, "jwtToken");
+                await _stockTraderBrokerClient.PostSellRequest(sellRequestModel, "jwtToken");
 
-                _logger.LogInformation("Successfully set {Amount} shares of stock with Id {stockId} for sale", sellRequestInput.AmountOfShares, sellRequestInput.StockId);
+                _logger.LogInformation("Successfully set {Amount} shares of stock with Id {stockId} for sale", sellRequestModel.AmountOfShares, sellRequestModel.StockId);
             }
             catch (Exception e)
             {

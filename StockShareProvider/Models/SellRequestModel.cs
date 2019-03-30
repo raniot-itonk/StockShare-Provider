@@ -2,7 +2,7 @@
 
 namespace StockShareProvider.Models
 {
-    public class SellRequestInput
+    public class SellRequestModel
     {
         public Guid AccountId { get; set; }
         public long StockId { get; set; }
