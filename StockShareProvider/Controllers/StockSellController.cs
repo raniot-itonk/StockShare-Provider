@@ -40,9 +40,9 @@ namespace StockShareProvider.Controllers
                 var sellRequestModels = await _stockTraderBrokerClient.GetSellRequests(sellRequestModel.AccountId, sellRequestModel.StockId, "jwtToken");
                 var sharesAlreadyForSale = sellRequestModels.Sum(model => model.AmountOfShares);
 
+                _logger.LogInformation("ShareHolder requests {requestAmount}, and he currently owns {amount} and already have {sharesAlreadyForSale} for sale", sellRequestModel.AmountOfShares, shareholder.Amount, sharesAlreadyForSale);
                 if (shareholder.Amount < sellRequestModel.AmountOfShares + sharesAlreadyForSale)
                 {
-                    _logger.LogInformation("ShareHolder requests {requestAmount}, but he only has {amount} and already {sharesAlreadyForSale} for sale", sellRequestModel.AmountOfShares, shareholder.Amount, sharesAlreadyForSale);
                     return BadRequest($"ShareHolder requests {sellRequestModel.AmountOfShares}, but he only has {shareholder.Amount}, and already {sharesAlreadyForSale} for sale");
                 }
 
