@@ -24,40 +24,33 @@ namespace StockShareProvider.Controllers
         }
 
         [HttpPost]
-        public async Task<ActionResult> SetSharesForSale(SellRequestModel sellRequestModel)
+        public async Task<ActionResult<ValidationResult>> SetSharesForSale(SellRequestModel sellRequestModel)
         {
             // Validate Ownership
-            try
+
+            var stock = await _publicShareOwnerControlClient.GetStock(sellRequestModel.StockId, "jwtToken");
+            var shareholder = stock.ShareHolders.FirstOrDefault(sh => sh.ShareholderId == sellRequestModel.AccountId);
+            if (shareholder == null)
             {
-                var stock = await _publicShareOwnerControlClient.GetStock(sellRequestModel.StockId, "jwtToken");
-                var shareholder = stock.ShareHolders.FirstOrDefault(sh => sh.ShareholderId == sellRequestModel.AccountId);
-                if (shareholder == null)
-                {
-                    _logger.LogError("ShareHolder with id {id} Not Found for stock {stockId}", sellRequestModel.AccountId, sellRequestModel.StockId);
-                    return BadRequest($"ShareHolder with id {sellRequestModel.AccountId} Not Found for stock {sellRequestModel.StockId}");
-                }
-
-                var sellRequestModels = await _stockTraderBrokerClient.GetSellRequests(sellRequestModel.AccountId, sellRequestModel.StockId, "jwtToken");
-                var sharesAlreadyForSale = sellRequestModels.Sum(model => model.AmountOfShares);
-
-                _logger.LogInformation("ShareHolder requests {requestAmount}, and he currently owns {amount} and already have {sharesAlreadyForSale} for sale", sellRequestModel.AmountOfShares, shareholder.Amount, sharesAlreadyForSale);
-                if (shareholder.Amount < sellRequestModel.AmountOfShares + sharesAlreadyForSale)
-                {
-                    return BadRequest($"ShareHolder requests {sellRequestModel.AmountOfShares}, but he only has {shareholder.Amount}, and already {sharesAlreadyForSale} for sale");
-                }
-
-                // Set Shares for Sale
-                await _stockTraderBrokerClient.PostSellRequest(sellRequestModel, "jwtToken");
-
-                _logger.LogInformation("Successfully set {Amount} shares of stock with Id {stockId} for sale", sellRequestModel.AmountOfShares, sellRequestModel.StockId);
+                _logger.LogError("ShareHolder with id {id} Not Found for stock {stockId}", sellRequestModel.AccountId, sellRequestModel.StockId);
+                return new ValidationResult { Valid = false, ErrorMessage = $"ShareHolder with id {sellRequestModel.AccountId} Not Found for stock {sellRequestModel.StockId}" };
             }
-            catch (Exception e)
+
+            var sellRequestModels = await _stockTraderBrokerClient.GetSellRequests(sellRequestModel.AccountId, sellRequestModel.StockId, "jwtToken");
+            var sharesAlreadyForSale = sellRequestModels.Sum(model => model.AmountOfShares);
+
+            _logger.LogInformation("ShareHolder requests {requestAmount}, and he currently owns {amount} and already have {sharesAlreadyForSale} for sale", sellRequestModel.AmountOfShares, shareholder.Amount, sharesAlreadyForSale);
+            if (shareholder.Amount < sellRequestModel.AmountOfShares + sharesAlreadyForSale)
             {
-                Console.WriteLine(e);
-                throw;
+                return new ValidationResult { Valid = false, ErrorMessage = $"ShareHolder requests {sellRequestModel.AmountOfShares}, but he only has {shareholder.Amount}, and already {sharesAlreadyForSale} for sale" };
             }
+
+            // Set Shares for Sale
+            await _stockTraderBrokerClient.PostSellRequest(sellRequestModel, "jwtToken");
+
+            _logger.LogInformation("Successfully set {Amount} shares of stock with Id {stockId} for sale", sellRequestModel.AmountOfShares, sellRequestModel.StockId);
             
-            return Ok();
+            return new ValidationResult{Valid = true, ErrorMessage = ""};
         }
     }
 }
