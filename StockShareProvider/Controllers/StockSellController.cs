@@ -46,7 +46,12 @@ namespace StockShareProvider.Controllers
             }
 
             // Set Shares for Sale
-            await _stockTraderBrokerClient.PostSellRequest(sellRequestModel, "jwtToken");
+            var validationResult = await _stockTraderBrokerClient.PostSellRequest(sellRequestModel, "jwtToken");
+            if (!validationResult.Valid)
+            {
+                _logger.LogWarning("Failed to set {Amount} shares of stock with Id {stockId} for sale", sellRequestModel.AmountOfShares, sellRequestModel.StockId);
+                return validationResult;
+            }
 
             _logger.LogInformation("Successfully set {Amount} shares of stock with Id {stockId} for sale", sellRequestModel.AmountOfShares, sellRequestModel.StockId);
             
