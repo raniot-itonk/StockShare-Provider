@@ -12,7 +12,7 @@ namespace StockShareProvider.Clients
 {
     public interface IStockTraderBrokerClient
     {
-        Task PostSellRequest(SellRequestModel request, string jwtToken);
+        Task<ValidationResult> PostSellRequest(SellRequestModel request, string jwtToken);
         Task<List<SellRequestModel>> GetSellRequests(Guid ownerId, long stockId, string jwtToken);
     }
 
@@ -25,12 +25,12 @@ namespace StockShareProvider.Clients
             _stockTraderBroker = serviceOption.CurrentValue.StockTraderBroker ??
                            throw new ArgumentNullException(nameof(serviceOption.CurrentValue.StockTraderBroker));
         }
-        public async Task PostSellRequest(SellRequestModel request, string jwtToken)
+        public async Task<ValidationResult> PostSellRequest(SellRequestModel request, string jwtToken)
         {
-            await PolicyHelper.ThreeRetriesAsync().ExecuteAsync(() =>
+            return await PolicyHelper.ThreeRetriesAsync().ExecuteAsync(() =>
                 _stockTraderBroker.BaseAddress
                     .AppendPathSegment(_stockTraderBroker.StockTraderBrokerPath.SellRequest)
-                    .WithOAuthBearerToken(jwtToken).PostJsonAsync(request));
+                    .WithOAuthBearerToken(jwtToken).PostJsonAsync(request).ReceiveJson<ValidationResult>());
         }
 
         public async Task<List<SellRequestModel>> GetSellRequests(Guid ownerId, long stockId, string jwtToken)
