@@ -14,6 +14,7 @@ namespace StockShareProvider.Clients
     {
         Task<ValidationResult> PostSellRequest(SellRequestModel request, string jwtToken);
         Task<List<SellRequestModel>> GetSellRequests(Guid ownerId, long stockId, string jwtToken);
+        Task<ValidationResult> RemoveSellRequest(long id, string jwtToken);
     }
 
     public class StockTraderBrokerClient : IStockTraderBrokerClient
@@ -39,6 +40,14 @@ namespace StockShareProvider.Clients
                 _stockTraderBroker.BaseAddress
                     .AppendPathSegment(_stockTraderBroker.StockTraderBrokerPath.SellRequest).SetQueryParams(new {ownerId, stockId})
                     .WithOAuthBearerToken(jwtToken).GetJsonAsync<List<SellRequestModel>>());
+        }
+
+        public async Task<ValidationResult> RemoveSellRequest(long id, string jwtToken)
+        {
+            return await PolicyHelper.ThreeRetriesAsync().ExecuteAsync(() =>
+                _stockTraderBroker.BaseAddress
+                    .AppendPathSegment(_stockTraderBroker.StockTraderBrokerPath.SellRequest)
+                    .WithOAuthBearerToken(jwtToken).DeleteAsync().ReceiveJson<ValidationResult>());
         }
     }
 }
