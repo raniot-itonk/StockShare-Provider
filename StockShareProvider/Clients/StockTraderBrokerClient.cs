@@ -46,7 +46,7 @@ namespace StockShareProvider.Clients
         {
             return await PolicyHelper.ThreeRetriesAsync().ExecuteAsync(() =>
                 _stockTraderBroker.BaseAddress
-                    .AppendPathSegment(_stockTraderBroker.StockTraderBrokerPath.SellRequest)
+                    .AppendPathSegments(_stockTraderBroker.StockTraderBrokerPath.SellRequest, id)
                     .WithOAuthBearerToken(jwtToken).DeleteAsync().ReceiveJson<ValidationResult>());
         }
     }
